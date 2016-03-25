@@ -1,4 +1,4 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
 import io.github.puddingspudding.fcgi.*;
 
@@ -8,11 +8,8 @@ import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
 import java.util.*;
-import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
-import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 /**
@@ -163,19 +160,15 @@ public class DefaultServer implements Server {
                                     requestHelper -> requestHelper.getRequestUri().test(fcgiHeader.get("DOCUMENT_URI"))
                                 ).findFirst();
 
-                            Response response = requestHelperOptional.get().getHandler().apply(
-                                new Request() {
-                                    @Override
-                                    public Map<String, String> getHeader() {
-                                        return httpHeader;
-                                    }
 
-                                    @Override
-                                    public ByteBuffer getBody() {
-                                        return ByteBuffer.wrap(byteArrayOutputStream.toByteArray());
-                                    }
-                                }
-                            );
+                            Response response = requestHelperOptional
+                                .get()
+                                .getHandler()
+                                .apply(
+                                    new HttpRequest()
+                                        .setHeader(httpHeader)
+                                        .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
+                                );
 
                             byte[] outputData = response.getBody().array();
 

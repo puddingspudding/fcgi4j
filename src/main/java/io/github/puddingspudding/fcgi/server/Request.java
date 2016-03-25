@@ -1,6 +1,5 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
-import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Map;
 import java.util.function.Predicate;
@@ -18,4 +17,10 @@ public interface Request {
     Map<String, String> getHeader();
 
     ByteBuffer getBody();
+
+    Request setHeader(Map<String, String> header);
+
+    Request setBody(ByteBuffer byteBuffer);
+
+
 }

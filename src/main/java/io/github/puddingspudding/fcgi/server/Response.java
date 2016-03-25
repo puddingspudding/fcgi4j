@@ -1,8 +1,7 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
 import java.nio.ByteBuffer;
 import java.util.Map;
-import java.util.function.Supplier;
 
 /**
  * Created by pudding on 19.03.16.

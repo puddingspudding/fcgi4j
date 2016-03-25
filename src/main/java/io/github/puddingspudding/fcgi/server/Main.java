@@ -1,22 +1,9 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
-import io.github.puddingspudding.fcgi.*;
-
-import java.io.IOException;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
-import java.net.SocketAddress;
 import java.nio.ByteBuffer;
-import java.nio.channels.*;
-import java.nio.channels.spi.*;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Created by pudding on 19.03.16.

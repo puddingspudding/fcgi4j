@@ -1,8 +1,5 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
-import io.github.puddingspudding.fcgi.FCGI;
-
-import java.nio.ByteBuffer;
 import java.util.function.Function;
 import java.util.function.Predicate;
 

@@ -1,4 +1,4 @@
-package io.github.puddingspudding.nginj;
+package io.github.puddingspudding.fcgi.server;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
