@@ -9,6 +9,10 @@ import java.util.function.Supplier;
  */
 public interface Response {
 
+    int getStatus();
+
+    Response setStatus(int status);
+
     Response setHeader(Map<String, String> header);
 
     Response setBody(ByteBuffer body);

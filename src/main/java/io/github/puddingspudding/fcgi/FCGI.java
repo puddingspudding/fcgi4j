@@ -12,7 +12,6 @@ import java.util.function.*;
 public class FCGI {
 
     public static final byte VERSION = 1;
-
     public static final byte BEGIN_REQUEST = 1;
     public static final byte ABORT_REQUEST = 2;
     public static final byte END_REQUEST = 3;
@@ -25,88 +24,14 @@ public class FCGI {
     public static final byte GET_VALUES_RESULT = 10;
     public static final byte UNKNOWN_TYPE = 11;
 
-    public static final Header getHeader(ByteBuffer byteBuffer, UnaryOperator<ByteBuffer> byteBufferTooSmall) {
-        if (byteBuffer.remaining() < 8) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-        Header header = new Header(
-            byteBuffer.get(),
-            byteBuffer.get(),
-            (short) ((byteBuffer.get() << 8) + byteBuffer.get()),
-            (short) ((byteBuffer.get() << 8) + byteBuffer.get()),
-            byteBuffer.get(),
-            byteBuffer.get()
-        );
-        return header;
-    }
-
-    public static final BeginRequestBody getBeginRequestBody(ByteBuffer byteBuffer, UnaryOperator<ByteBuffer> byteBufferTooSmall) {
-        if (byteBuffer.remaining() < 8) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-        return new BeginRequestBody(
-            (short) (byteBuffer.get() + (byteBuffer.get() << 8)),
-            byteBuffer.get(),
-            new byte[]{
-                byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get()
-            }
-        );
-    }
-
-    public static final NameValuePair getNameValuePair(ByteBuffer byteBuffer, UnaryOperator<ByteBuffer> byteBufferTooSmall) {
-        if (byteBuffer.remaining() < 1) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-
-        int nameLength = byteBuffer.get();
-
-        if (nameLength == 0) return null;
-
-        if (nameLength >> 7 == 1) {
-            if (byteBuffer.remaining() < 3) {
-                byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-            }
-            nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
-        }
-
-
-        if (byteBuffer.remaining() < 1) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-        int valueLength = byteBuffer.get();
-        if (valueLength >> 7 == 1) {
-            if (byteBuffer.remaining() < 3) {
-                byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-            }
-            valueLength = ((valueLength & 0x7f) << 24) + (byteBuffer.get(0) << 16) + (byteBuffer.get(1) << 8) + byteBuffer.get(2);
-        }
-
-        if (byteBuffer.remaining() < nameLength) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-        byte[] nameBa = new byte[nameLength];
-        byteBuffer.get(nameBa);
-        String name = new String(nameBa);
-
-        if (byteBuffer.remaining() < valueLength) {
-            byteBuffer = byteBufferTooSmall.apply(byteBuffer);
-        }
-        byte[] valueBa = new byte[valueLength];
-        byteBuffer.get(valueBa);
-        String value = new String(valueBa);
-
-        return new NameValuePair(
-            name,
-            value
-        );
-    }
+    public static final int MAX_CONTENT_LENGTH = 0xffff;
 
     public static final ByteBuffer toByteBuffer(final Header header) {
         ByteBuffer bb = ByteBuffer.allocate(8);
         bb.put(header.getVersion());
         bb.put(header.getType());
         bb.putShort(header.getId());
-        bb.putShort(header.getContentLength());
+        bb.putShort((short) header.getContentLength());
         bb.put(header.getPaddingLength());
         bb.put(header.getReserved());
         bb.flip();
@@ -137,7 +62,7 @@ public class FCGI {
         };
     }
 
-    public static final Supplier<Header> read(Function<Integer, ByteBuffer> supplier) {
+    public static final Supplier<Header> readHeader(Function<Integer, ByteBuffer> supplier) {
         return () -> {
             final ByteBuffer byteBuffer = supplier.apply(8);
             return new Header(
@@ -199,8 +124,5 @@ public class FCGI {
             );
         };
     }
-
-
-
 
 }

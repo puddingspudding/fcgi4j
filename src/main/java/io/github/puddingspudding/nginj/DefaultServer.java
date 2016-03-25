@@ -2,31 +2,27 @@ package io.github.puddingspudding.nginj;
 
 import io.github.puddingspudding.fcgi.*;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.net.InetAddress;
-import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.nio.ByteBuffer;
 import java.nio.channels.*;
-import java.nio.channels.spi.SelectorProvider;
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.BiFunction;
+import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.UnaryOperator;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
-import java.util.stream.Stream;
 
 /**
  * Created by pudding on 19.03.16.
  */
 public class DefaultServer implements Server {
+
+    public static final int DEFAULT_POOL_SIZE = 50;
+
+    private int poolSize = DEFAULT_POOL_SIZE;
 
     private class RequestHelper {
 
@@ -71,8 +67,13 @@ public class DefaultServer implements Server {
 
     }
 
+    public DefaultServer setPoolSize(final int size) {
+        this.poolSize = size;
+        return this;
+    }
+
     @Override
-    public Server on(Predicate<String> requestMethod, Predicate<String> requestURI, Function<Request, Response> req2res) {
+    public DefaultServer on(Predicate<String> requestMethod, Predicate<String> requestURI, Function<Request, Response> req2res) {
         this.handler.add(new RequestHelper(
             requestMethod,
             requestURI,
@@ -82,16 +83,16 @@ public class DefaultServer implements Server {
     }
 
     @Override
-    public Server start() {
-        final int POOL_SIZE = 50;
+    public DefaultServer start() {
+
 
         try {
             this.serverSocketChannel.bind(this.socketAddress);
-            IntStream.rangeClosed(0, POOL_SIZE).forEach(i -> {
+            IntStream.rangeClosed(0, this.poolSize).forEach(i -> {
                 final Thread t = new Thread(() -> {
                     SocketChannel socketChannel;
-                    final ByteBuffer bb = ByteBuffer.allocate(0x1ffff);
-                    final ByteBuffer bbout = ByteBuffer.allocate(0xffff);
+                    final ByteBuffer bb = ByteBuffer.allocate(FCGI.MAX_CONTENT_LENGTH * 2);
+                    final ByteBuffer bbout = ByteBuffer.allocate(FCGI.MAX_CONTENT_LENGTH);
                     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                     while (!Thread.currentThread().isInterrupted()) {
                         Header header;
@@ -110,10 +111,10 @@ public class DefaultServer implements Server {
                             short id = 0;
 
                             while (!Thread.currentThread().isInterrupted()) {
-                                header = FCGI.read(FCGI.read(socketChannel, bb)).get();
+                                header = FCGI.readHeader(FCGI.read(socketChannel, bb)).get();
                                 id = header.getId();
                                 type = header.getType();
-                                System.out.println(type);
+
                                 if (type == FCGI.BEGIN_REQUEST) {
                                     BeginRequestBody beginRequestBody = FCGI.readBegingRequestBody(FCGI.read(socketChannel, bb)).get();
                                 } else if (type == FCGI.PARAMS) {
@@ -140,12 +141,12 @@ public class DefaultServer implements Server {
                                     if (header.getContentLength() == 0) {
                                         break;
                                     }
-                                    while (bb.remaining() < Short.toUnsignedInt(header.getContentLength())) {
+                                    while (bb.remaining() < header.getContentLength()) {
                                         bb.compact();
                                         socketChannel.read(bb);
                                         bb.flip();
                                     }
-                                    byte[] tmp = new byte[Short.toUnsignedInt(header.getContentLength())];
+                                    byte[] tmp = new byte[header.getContentLength()];
                                     bb.get(tmp);
                                     byteArrayOutputStream.write(tmp);
                                 }
@@ -153,16 +154,7 @@ public class DefaultServer implements Server {
                                     bb.get(new byte[header.getPaddingLength()]);
                                 }
                             }
-                            socketChannel.shutdownInput();
-
-
-                            httpHeader.forEach((key, value) -> {
-                                System.out.println(key + ":" + value);
-                            });
-                            fcgiHeader.forEach((key, value) -> {
-                                System.out.println(key + ":" + value);
-                            });
-
+                            //socketChannel.shutdownInput();
 
                             Optional<RequestHelper> requestHelperOptional = this.handler.stream()
                                 .filter(
@@ -185,15 +177,22 @@ public class DefaultServer implements Server {
                                 }
                             );
 
-
                             byte[] outputData = response.getBody().array();
 
-                            socketChannel.write(
-                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.STDOUT, id, (short) 25, (byte)0, (byte)0))
+
+                            StringBuilder stringBuilder = response.getHeader().entrySet().stream().collect(
+                                () -> new StringBuilder(),
+                                (sb, entry) -> sb.append(entry.getKey()).append(":").append(entry.getValue()).append(System.lineSeparator()),
+                                (sb1, sb2) -> {}
                             );
-                            byte[] content = ("Content-type: text/html" + System.lineSeparator() + System.lineSeparator()).getBytes();
+                            stringBuilder.append(System.lineSeparator());
+
                             socketChannel.write(
-                                ByteBuffer.wrap(content)
+                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.STDOUT, id, (short) stringBuilder.length(), (byte)0, (byte)0))
+                            );
+
+                            socketChannel.write(
+                                ByteBuffer.wrap(stringBuilder.toString().getBytes())
                             );
 
                             for (int x = 0; x < Math.max(0xffff, outputData.length); x+= 0xffff) {
@@ -210,16 +209,14 @@ public class DefaultServer implements Server {
 
 
                             socketChannel.write(
-                                    FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.STDOUT, id, (short) 0, (byte)0, (byte)0))
+                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.STDOUT, id, (short) 0, (byte)0, (byte)0))
                             );
                             socketChannel.write(
-                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.END_REQUEST, id, (short) 8, (byte) 0, (byte)0))
+                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.END_REQUEST, id, (short) 0, (byte) 0, (byte)0))
                             );
                             socketChannel.write(
                                 FCGI.toByteBuffer(new EndRequestBody(0, (byte) 0, new byte[3]))
                             );
-
-
 
                             socketChannel.shutdownOutput();
                         } catch (Exception e) {
@@ -241,6 +238,5 @@ public class DefaultServer implements Server {
 
         return this;
     }
-
 
 }

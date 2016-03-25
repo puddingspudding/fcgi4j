@@ -25,39 +25,34 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-
-        Server server = new DefaultServer(new InetSocketAddress("192.168.1.140", 8080));
-
-
-        server.on(
-            method -> "GET".equals(method),
-            uri -> true,
-            request -> {
-                return new Response() {
-                    @Override
-                    public Response setHeader(Map<String, String> header) {
-                        return null;
-                    }
-
-                    @Override
-                    public Response setBody(ByteBuffer body) {
-                        return null;
-                    }
-
-                    @Override
-                    public Map<String, String> getHeader() {
-                        return null;
-                    }
-
-                    @Override
-                    public ByteBuffer getBody() {
-                        return ByteBuffer.wrap("HALLO WELT".getBytes());
-                    }
-                };
-            }
-        );
-
-        server.start();
+        new DefaultServer(new InetSocketAddress("192.168.1.140", 8080))
+            .on(
+                Request.isGET,
+                uri -> true, // match any
+                request -> {
+                    Map<String, String> header = new HashMap<>();
+                    header.put("Auth", Integer.toHexString(0xbfe123cd));
+                    header.put("test", "woot");
+                    Response response = HttpResponse
+                        .notFound()
+                        .setHeader(header)
+                        .setBody(ByteBuffer.wrap("Hello World GET".getBytes()));
+                    return response;
+                }
+            )
+            .on(
+                Request.isPOST,
+                uri -> true,
+                request -> {
+                    Response response = HttpResponse
+                        .ok()
+                        .setHeader(new HashMap<>())
+                        .setBody(ByteBuffer.wrap("Hello World POST".getBytes()));
+                    return response;
+                }
+            )
+            .setPoolSize(25)
+            .start();
 
 
     }

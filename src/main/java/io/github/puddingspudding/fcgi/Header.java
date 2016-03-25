@@ -1,6 +1,8 @@
 package io.github.puddingspudding.fcgi;
 
 import java.nio.ByteBuffer;
+import java.util.function.BiFunction;
+import java.util.function.Supplier;
 
 /**
  * Created by pudding on 24.03.16.
@@ -42,8 +44,8 @@ public class Header {
         return this.id;
     }
 
-    public final short getContentLength() {
-        return this.contentLength;
+    public final int getContentLength() {
+        return Short.toUnsignedInt(this.contentLength);
     }
 
     public final byte getPaddingLength() {
