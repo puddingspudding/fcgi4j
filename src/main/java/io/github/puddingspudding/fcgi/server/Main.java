@@ -12,7 +12,7 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        new DefaultServer(new InetSocketAddress("192.168.1.140", 8080))
+        new DefaultServer(new InetSocketAddress("127.0.0.1", 8080))
             .on(
                 Request.isGET,
                 uri -> true, // match any

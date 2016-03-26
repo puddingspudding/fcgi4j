@@ -151,7 +151,7 @@ public class DefaultServer implements Server {
                                     bb.get(new byte[header.getPaddingLength()]);
                                 }
                             }
-                            //socketChannel.shutdownInput();
+                            socketChannel.shutdownInput();
 
                             Optional<RequestHelper> requestHelperOptional = this.handler.stream()
                                 .filter(
@@ -205,13 +205,14 @@ public class DefaultServer implements Server {
                                 FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.STDOUT, id, (short) 0, (byte)0, (byte)0))
                             );
                             socketChannel.write(
-                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.END_REQUEST, id, (short) 0, (byte) 0, (byte)0))
+                                FCGI.toByteBuffer(new Header(FCGI.VERSION, FCGI.END_REQUEST, id, (short) 8, (byte) 0, (byte)0))
                             );
                             socketChannel.write(
                                 FCGI.toByteBuffer(new EndRequestBody(0, (byte) 0, new byte[3]))
                             );
 
                             socketChannel.shutdownOutput();
+                            socketChannel.close();
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
