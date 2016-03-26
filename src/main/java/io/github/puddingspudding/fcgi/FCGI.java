@@ -7,10 +7,13 @@ import java.nio.channels.*;
 import java.util.function.*;
 
 /**
- * Created by pudding on 24.03.16.
+ * A collection of static methods to read and write {@link ByteBuffer}
  */
 public class FCGI {
 
+    /**
+     *
+     */
     public static final byte VERSION = 1;
     public static final byte BEGIN_REQUEST = 1;
     public static final byte ABORT_REQUEST = 2;

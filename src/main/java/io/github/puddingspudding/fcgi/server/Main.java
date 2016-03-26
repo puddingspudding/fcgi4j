@@ -12,7 +12,9 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        new DefaultServer(new InetSocketAddress("127.0.0.1", 8080))
+        DefaultServer fcgiServer = new DefaultServer(new InetSocketAddress("127.0.0.1", 8080));
+
+        fcgiServer
             .on(
                 Request.isGET,
                 uri -> true, // match any
@@ -37,6 +39,11 @@ public class Main {
                         .setBody(ByteBuffer.wrap("Hello World POST".getBytes()));
                     return response;
                 }
+            )
+            .on(
+                method -> "ANY_HTTP_METHOD".equalsIgnoreCase(method),
+                uri -> true,
+                req -> HttpResponse.ok().setBody(req.getBody())
             )
             .setPoolSize(25)
             .start();

@@ -21,6 +21,8 @@ public class DefaultServer implements Server {
 
     private int poolSize = DEFAULT_POOL_SIZE;
 
+    private Function<Request, Response> defaultNotFoundHandler = req -> HttpResponse.notFound();
+
     private class RequestHelper {
 
         private final Predicate<String> requestMethod;
@@ -52,6 +54,10 @@ public class DefaultServer implements Server {
 
     private final ServerSocketChannel serverSocketChannel;
 
+    /**
+     *
+     * @param socketAddress ip/host and port to bind
+     */
     public DefaultServer(SocketAddress socketAddress) {
         this.socketAddress = socketAddress;
 
@@ -160,17 +166,31 @@ public class DefaultServer implements Server {
                                     requestHelper -> requestHelper.getRequestUri().test(fcgiHeader.get("DOCUMENT_URI"))
                                 ).findFirst();
 
+                            Response response;
 
-                            Response response = requestHelperOptional
-                                .get()
-                                .getHandler()
-                                .apply(
-                                    new HttpRequest()
-                                        .setHeader(httpHeader)
-                                        .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
+                            byte[] outputData = new byte[0];
+                            if (requestHelperOptional.isPresent()) {
+                                response = requestHelperOptional
+                                    .get()
+                                    .getHandler()
+                                    .apply(
+                                        new HttpRequest()
+                                            .setHeader(httpHeader)
+                                            .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
+                                    );
+                                ByteBuffer data = response.getBody();
+                                if (data != null) {
+                                    outputData = data.array();
+                                }
+                            } else {
+                                response = this.defaultNotFoundHandler.apply(new HttpRequest()
+                                    .setHeader(httpHeader)
+                                    .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
                                 );
+                            }
 
-                            byte[] outputData = response.getBody().array();
+
+
 
 
                             StringBuilder stringBuilder = response.getHeader().entrySet().stream().collect(
