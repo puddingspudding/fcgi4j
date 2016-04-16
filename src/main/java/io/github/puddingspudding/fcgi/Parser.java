@@ -35,12 +35,4 @@ public interface Parser<T> {
      */
     T parse(final ByteBuffer byteBuffer);
 
-    /**
-     * Creates {@link T} from byte array input stream.
-     *
-     * @param byteArrayInputStream byte array input stream convert into {@link T}
-     * @return {@link T}
-     */
-    T parse(final ByteArrayInputStream byteArrayInputStream) throws IOException;
-
 }

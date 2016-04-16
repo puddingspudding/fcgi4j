@@ -1,16 +1,12 @@
 package io.github.puddingspudding.fcgi;
 
-import java.nio.ByteBuffer;
-import java.util.function.BiFunction;
-import java.util.function.Supplier;
-
 /**
- * Created by pudding on 24.03.16.
+ * Header for every message.
  */
 public class Header {
 
     private final byte version;
-    private final byte type;
+    private final FCGI.Type type;
     private final short id;
     private final short contentLength;
     private final byte paddingLength;
@@ -18,12 +14,15 @@ public class Header {
 
     public Header(
         final byte version,
-        final byte type,
+        final FCGI.Type type,
         final short id,
         final short contentLength,
         final byte paddingLength,
         final byte reserved
     ) {
+        if (version != 1) {
+            throw new IllegalArgumentException();
+        }
         this.version = version;
         this.type = type;
         this.id = id;
@@ -36,12 +35,12 @@ public class Header {
         return this.version;
     }
 
-    public final byte getType() {
+    public final FCGI.Type getType() {
         return this.type;
     }
 
-    public final short getId() {
-        return this.id;
+    public final int getId() {
+        return Short.toUnsignedInt(this.id);
     }
 
     public final int getContentLength() {
