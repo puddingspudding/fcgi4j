@@ -2,6 +2,13 @@ package io.github.puddingspudding.fcgi;
 
 /**
  * Header for every message.
+ *
+ * byte version
+ * byte type
+ * short id
+ * short content length
+ * byte padding length
+ * byte reserved
  */
 public class Header {
 
