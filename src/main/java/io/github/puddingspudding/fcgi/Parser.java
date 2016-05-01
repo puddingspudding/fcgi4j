@@ -10,29 +10,20 @@ import java.nio.ByteBuffer;
 public interface Parser<T> {
 
     /**
-     * Creates {@link T} from bytes in big endian order.
-     *
-     * @param bytes byte to convert into {@link T}
-     * @return {@link T}
-     */
-    @Deprecated
-    T parseBigEndian(final byte[] bytes);
-
-    /**
-     * Creates {@link T} from bytes in little endian order.
-     *
-     * @param bytes byte to convert into {@link T}
-     * @return {@link T}
-     */
-    @Deprecated
-    T parseLittleEndian(final byte[] bytes);
-
-    /**
      * Creates {@link T} from byte buffer.
      *
      * @param byteBuffer byte buffer convert into {@link T}
      * @return {@link T}
      */
     T parse(final ByteBuffer byteBuffer);
+
+    /**
+     * Checks ByteBuffer for available bytes. Returns true if enough bytes are available
+     * and false if not.
+     *
+     * @param byteBuffer byte buffer to check
+     * @return enough byte are available to read
+     */
+    boolean checkByteBuffer(final ByteBuffer byteBuffer);
 
 }

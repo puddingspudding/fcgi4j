@@ -13,16 +13,6 @@ import java.nio.ByteBuffer;
 public class NameValuePairParser implements Parser<NameValuePair> {
 
     @Override
-    public NameValuePair parseBigEndian(byte[] bytes) {
-        return null;
-    }
-
-    @Override
-    public NameValuePair parseLittleEndian(byte[] bytes) {
-        return null;
-    }
-
-    @Override
     public NameValuePair parse(ByteBuffer byteBuffer) {
         int nameLength = byteBuffer.get();
 
@@ -49,6 +39,40 @@ public class NameValuePairParser implements Parser<NameValuePair> {
             name,
             value
         );
+    }
+
+    @Override
+    public boolean checkByteBuffer(ByteBuffer byteBuffer) {
+        byteBuffer.mark();
+        try {
+            if (byteBuffer.remaining() < 1) {
+                return false;
+            }
+            int nameLength = byteBuffer.get();
+            if (nameLength >> 7 == 1) {
+                if (byteBuffer.remaining() < 3) {
+                    return false;
+                }
+                nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
+            }
+            if (byteBuffer.remaining() < 1) {
+                return false;
+            }
+            int valueLength = byteBuffer.get();
+            if (valueLength >> 7 == 1) {
+                if (byteBuffer.remaining() < 3) {
+                    return false;
+                }
+                valueLength = ((valueLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
+            }
+
+            if (byteBuffer.remaining() < nameLength + valueLength) {
+                return false;
+            }
+        } finally {
+            byteBuffer.reset();
+        }
+        return true;
     }
 
 }

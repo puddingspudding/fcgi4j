@@ -3,28 +3,30 @@ package io.github.puddingspudding.fcgi.parser;
 import io.github.puddingspudding.fcgi.BeginRequestBody;
 import io.github.puddingspudding.fcgi.Parser;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Created by pudding on 16.04.16.
+ * Creates {@link BeginRequestBody} from various byte sources.
  */
 public class BeginRequestBodyParser implements Parser<BeginRequestBody> {
 
     @Override
-    public BeginRequestBody parseBigEndian(byte[] bytes) {
-        return null;
-    }
-
-    @Override
-    public BeginRequestBody parseLittleEndian(byte[] bytes) {
-        return null;
-    }
-
-    @Override
     public BeginRequestBody parse(ByteBuffer byteBuffer) {
-        return null;
+        if (!this.checkByteBuffer(byteBuffer)) {
+            throw new RuntimeException();
+        }
+        return new BeginRequestBody(
+            (short) (byteBuffer.get() + (byteBuffer.get() << 8)),
+            byteBuffer.get(),
+            new byte[]{
+                byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get()
+            }
+        );
+    }
+
+    @Override
+    public boolean checkByteBuffer(ByteBuffer byteBuffer) {
+        return byteBuffer.remaining() >= 8;
     }
 
 }
