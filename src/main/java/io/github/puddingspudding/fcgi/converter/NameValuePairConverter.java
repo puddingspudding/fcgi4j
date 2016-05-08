@@ -1,22 +1,33 @@
-package io.github.puddingspudding.fcgi.parser;
+package io.github.puddingspudding.fcgi.converter;
 
+import io.github.puddingspudding.fcgi.ByteBufferConverter;
 import io.github.puddingspudding.fcgi.NameValuePair;
-import io.github.puddingspudding.fcgi.Parser;
 
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.nio.ByteBuffer;
 
 /**
- * Creates {@link NameValuePair} from various byte sources.
+ * Created by pudding on 07.05.16.
  */
-public class NameValuePairParser implements Parser<NameValuePair> {
+public class NameValuePairConverter implements ByteBufferConverter<NameValuePair> {
+
 
     @Override
-    public NameValuePair parse(ByteBuffer byteBuffer) {
-        int nameLength = byteBuffer.get();
+    public ByteBuffer toByteBuffer(NameValuePair nameValuePair) {
+        return null;
+    }
 
-        if (nameLength == 0) return null;
+    @Override
+    public ByteBuffer toByteBuffer(NameValuePair nameValuePair, ByteBuffer byteBuffer) {
+        return null;
+    }
+
+    @Override
+    public NameValuePair fromByteBuffer(ByteBuffer byteBuffer) {
+        if (!this.validate(byteBuffer)) {
+            throw new RuntimeException();
+        }
+
+        int nameLength = byteBuffer.get();
 
         if (nameLength >> 7 == 1) {
             nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
@@ -36,13 +47,13 @@ public class NameValuePairParser implements Parser<NameValuePair> {
         String value = new String(valueBa);
 
         return new NameValuePair(
-            name,
-            value
+                name,
+                value
         );
     }
 
     @Override
-    public boolean checkByteBuffer(ByteBuffer byteBuffer) {
+    public boolean validate(ByteBuffer byteBuffer) {
         byteBuffer.mark();
         try {
             if (byteBuffer.remaining() < 1) {
@@ -74,5 +85,4 @@ public class NameValuePairParser implements Parser<NameValuePair> {
         }
         return true;
     }
-
 }

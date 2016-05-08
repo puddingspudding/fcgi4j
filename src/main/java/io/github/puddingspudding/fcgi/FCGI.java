@@ -10,7 +10,6 @@ import java.util.function.*;
  */
 public class FCGI {
 
-
     public enum Type {
         BEGIN_REQUEST ((byte) 1),
         ABORT_REQUEST ((byte) 2),
@@ -47,30 +46,8 @@ public class FCGI {
 
     public static final byte VERSION = 1;
 
-    public static final int MAX_CONTENT_LENGTH = 0xffff;
-
-    public static final ByteBuffer toByteBuffer(final Header header) {
-        /*ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.put(header.getVersion());
-        bb.put(header.getType());
-        bb.putShort(header.getId());
-        bb.putShort((short) header.getContentLength());
-        bb.put(header.getPaddingLength());
-        bb.put(header.getReserved());
-        bb.flip();
-        return bb;*/
-        return null;
-    }
-
-    public static final ByteBuffer toByteBuffer(final EndRequestBody endRequestBody) {
-        ByteBuffer bb = ByteBuffer.allocate(8);
-        bb.putInt(endRequestBody.getAppStatus());
-        bb.put(endRequestBody.getProtocalStatus());
-        bb.put(endRequestBody.getReserved());
-        bb.flip();
-        return bb;
-    }
-
+    public static final int MAX_CONTENT_LENGTH = 0xffff; //
+/*
     public static final Function<Integer, ByteBuffer> read(SocketChannel socketChannel, ByteBuffer byteBuffer) {
         return size -> {
             try {
@@ -85,69 +62,6 @@ public class FCGI {
             return byteBuffer;
         };
     }
-
-    public static final Supplier<Header> readHeader(Function<Integer, ByteBuffer> supplier) {
-        return () -> {
-            return null;
-            /*final ByteBuffer byteBuffer = supplier.apply(8);
-            return new Header(
-                byteBuffer.get(),
-                byteBuffer.get(),
-                byteBuffer.getShort(),
-                byteBuffer.getShort(),
-                byteBuffer.get(),
-                byteBuffer.get()
-            );*/
-        };
-    }
-
-    public static final Supplier<BeginRequestBody> readBegingRequestBody(Function<Integer, ByteBuffer> supplier) {
-        return () -> {
-            final ByteBuffer byteBuffer = supplier.apply(8);
-            return new BeginRequestBody(
-                    (short) (byteBuffer.get() + (byteBuffer.get() << 8)),
-                    byteBuffer.get(),
-                    new byte[]{
-                            byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get(), byteBuffer.get()
-                    }
-            );
-        };
-    }
-
-    public static final Supplier<NameValuePair> readNameValuePair(Function<Integer, ByteBuffer> supplier) {
-        return () -> {
-            ByteBuffer byteBuffer = supplier.apply(2);
-            int nameLength = byteBuffer.get();
-
-            if (nameLength == 0) return null;
-
-            if (nameLength >> 7 == 1) {
-                byteBuffer = supplier.apply(3);
-                nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
-            }
-
-
-            int valueLength = byteBuffer.get();
-            if (valueLength >> 7 == 1) {
-                byteBuffer = supplier.apply(3);
-                valueLength = ((valueLength & 0x7f) << 24) + (byteBuffer.get(0) << 16) + (byteBuffer.get(1) << 8) + byteBuffer.get(2);
-            }
-
-            byteBuffer = supplier.apply(nameLength);
-            byte[] nameBa = new byte[nameLength];
-            byteBuffer.get(nameBa);
-            String name = new String(nameBa);
-
-            byteBuffer = supplier.apply(valueLength);
-            byte[] valueBa = new byte[valueLength];
-            byteBuffer.get(valueBa);
-            String value = new String(valueBa);
-
-            return new NameValuePair(
-                name,
-                value
-            );
-        };
-    }
+*/
 
 }
