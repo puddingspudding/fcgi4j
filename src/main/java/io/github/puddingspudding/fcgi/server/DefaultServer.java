@@ -23,6 +23,13 @@ public class DefaultServer implements Server {
 
     private Function<Request, Response> defaultNotFoundHandler = req -> HttpResponse.notFound();
 
+    private Map<String, Class> map;
+
+    public DefaultServer setMap(final Map<String, Class> map) {
+        this.map = map;
+        return this;
+    }
+
     private class RequestHelper {
 
         private final Predicate<String> requestMethod;
@@ -94,7 +101,7 @@ public class DefaultServer implements Server {
             IntStream.rangeClosed(0, this.poolSize).forEach(i -> {
                 final Thread t = new Thread(() -> {
                     SocketChannel socketChannel;
-                    final ByteBuffer bb = ByteBuffer.allocate(FCGI.MAX_CONTENT_LENGTH * 2);
+                    final ByteBuffer bb = ByteBuffer.allocate(FCGI.MAX_CONTENT_LENGTH);
                     final ByteBuffer bbout = ByteBuffer.allocate(FCGI.MAX_CONTENT_LENGTH);
                     final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
                     while (!Thread.currentThread().isInterrupted()) {
@@ -108,9 +115,11 @@ public class DefaultServer implements Server {
                             socketChannel = this.serverSocketChannel.accept();
                             socketChannel.finishConnect();
 
-                            bb.clear();
-                            socketChannel.read(bb);
+                            /*bb.clear();
+                            bb.compact();*
+/*                            */
                             bb.flip();
+
                             short id = 0;
 
                             while (!Thread.currentThread().isInterrupted()) {
@@ -128,13 +137,19 @@ public class DefaultServer implements Server {
 
                                     NameValuePair nameValuePair = FCGI.readNameValuePair(FCGI.read(socketChannel, bb)).get();
                                     if (nameValuePair.getName().startsWith("HTTP_")) {
-                                        httpHeader.put(nameValuePair.getName().substring(5), nameValuePair.getValue());
+                                        httpHeader.put(
+                                            nameValuePair.getName().substring(5).toLowerCase().replace('_', '-'),
+                                            nameValuePair.getValue()
+                                        );
                                     }
 
                                     while ((bb.position() - pos) != header.getContentLength()) {
                                         nameValuePair = FCGI.readNameValuePair(FCGI.read(socketChannel, bb)).get();
                                         if (nameValuePair.getName().startsWith("HTTP_")) {
-                                            httpHeader.put(nameValuePair.getName().substring(5), nameValuePair.getValue());
+                                            httpHeader.put(
+                                                nameValuePair.getName().substring(5).toLowerCase().replace('_', '-'),
+                                                nameValuePair.getValue()
+                                            );
                                         } else {
                                             fcgiHeader.put(nameValuePair.getName(), nameValuePair.getValue());
                                         }
@@ -157,41 +172,21 @@ public class DefaultServer implements Server {
                                     bb.get(new byte[header.getPaddingLength()]);
                                 }
                             }
-                            socketChannel.shutdownInput();
+                            //socketChannel.shutdownInput();
 
-                            Optional<RequestHelper> requestHelperOptional = this.handler.stream()
-                                .filter(
-                                    requestHelper -> requestHelper.getRequestMethod().test(fcgiHeader.get("REQUEST_METHOD"))
-                                ).filter(
-                                    requestHelper -> requestHelper.getRequestUri().test(fcgiHeader.get("DOCUMENT_URI"))
-                                ).findFirst();
 
-                            Response response;
+                            String fileName = "/tmp/www" + fcgiHeader.get("SCRIPT_NAME");
+                            Object o = this.map.get(fileName).newInstance();
+                            HttpResponse response = (HttpResponse) this.map.get(fileName).getDeclaredMethod("get", HttpRequest.class, HttpResponse.class)
+                                .invoke(o, new HttpRequest()
+                                        .setHeader(httpHeader)
+                                        .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray())), new HttpResponse());
 
                             byte[] outputData = new byte[0];
-                            if (requestHelperOptional.isPresent()) {
-                                response = requestHelperOptional
-                                    .get()
-                                    .getHandler()
-                                    .apply(
-                                        new HttpRequest()
-                                            .setHeader(httpHeader)
-                                            .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
-                                    );
-                                ByteBuffer data = response.getBody();
-                                if (data != null) {
-                                    outputData = data.array();
-                                }
-                            } else {
-                                response = this.defaultNotFoundHandler.apply(new HttpRequest()
-                                    .setHeader(httpHeader)
-                                    .setBody(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()))
-                                );
+                            ByteBuffer data = response.getBody();
+                            if (data != null) {
+                                outputData = data.array();
                             }
-
-
-
-
 
                             StringBuilder stringBuilder = response.getHeader().entrySet().stream().collect(
                                 () -> new StringBuilder(),
