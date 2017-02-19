@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration>
+    <Appenders>
+        <RollingRandomAccessFile name="errorLog" fileName="/var/log/nginj/error.log" filePattern="/var/log/nginj/error-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>%d %p [%t] %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+        </RollingRandomAccessFile>
+        <RollingRandomAccessFile name="traceLog" fileName="/var/log/nginj/trace.log" filePattern="/var/log/nginj/trace-%d{MM-dd-yyyy}-%i.log.gz">
+            <PatternLayout>
+                <Pattern>%d %p [%t] %m%n</Pattern>
+            </PatternLayout>
+            <Policies>
+                <TimeBasedTriggeringPolicy />
+            </Policies>
+        </RollingRandomAccessFile>
+    </Appenders>
+    <Loggers>
+        <Logger level="error" name="error" additivity="false">
+            <AppenderRef ref="errorLog" />
+        </Logger>
+        <Logger level="trace" name="trace" additivity="false">
+            <AppenderRef ref="traceLog" />
+        </Logger>
+    </Loggers>
+</Configuration>

@@ -14,6 +14,6 @@
  * limitations under the License.
  */
 /**
- * Classes for FCGI.
+ * Classes for server and java file compiler.
  */
-package io.github.puddingspudding.fcgi;
+package io.github.puddingspudding.nginj;
