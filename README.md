@@ -17,7 +17,7 @@ location ~ \.java$ {
 ---
 
 ### NGINJ
-
+/etc/nginj/config.properties
 ```
 #
 # rootDirectory: directory to look for .java files
