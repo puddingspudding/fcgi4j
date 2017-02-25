@@ -44,6 +44,8 @@ class JavaFileCompiler {
 
     private final Logger traceLogger;
 
+    private final WatchService watchService;
+
     public JavaFileCompiler(
         final Path rootDir,
         final Path tmpDir,
@@ -54,6 +56,12 @@ class JavaFileCompiler {
         this.tmpDir = tmpDir;
         this.errorLogger = errorLogger;
         this.traceLogger = traceogger;
+
+        try {
+            this.watchService = FileSystems.getDefault().newWatchService();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public Class compile(Path javaFile) {
@@ -75,20 +83,22 @@ class JavaFileCompiler {
 
             Path file = Files.walk(this.tmpDir, FileVisitOption.FOLLOW_LINKS)
                 .filter(path -> path.toFile().toString().endsWith(".class"))
+                .peek(p -> p.toFile().deleteOnExit())
                 .findFirst()
                 .orElseThrow(RuntimeException::new);
-
 
             String className = file.toString()
                 .replace(".class", "")
                 .replace(this.tmpDir.toString() + "/", "")
                 .replace("/", ".");
 
-            Class cl = URLClassLoader
-                .newInstance(new URL[]{new URL("file:" + this.tmpDir + "/")})
-                .loadClass(className);
+            ClassLoader classLoader = new MyClassLoader(this.tmpDir, ClassLoader.getSystemClassLoader());
+
+            Class cl = classLoader.loadClass(className);
 
             this.traceLogger.trace("compiled {}", javaFile);
+
+            Files.delete(file);
 
             return cl;
         } catch (Exception e) {
@@ -98,7 +108,7 @@ class JavaFileCompiler {
     }
 
     public void watch(Map<String, Class> compiledClasses) throws Exception {
-        WatchService watchService = FileSystems.getDefault().newWatchService();
+
 
         Files.walk(this.rootDir, FileVisitOption.FOLLOW_LINKS)
             .filter(Files::isDirectory)
@@ -107,6 +117,7 @@ class JavaFileCompiler {
                     dir.register(
                         watchService,
                         new WatchEvent.Kind[] {
+                            StandardWatchEventKinds.ENTRY_CREATE,
                             StandardWatchEventKinds.ENTRY_MODIFY,
                             StandardWatchEventKinds.ENTRY_DELETE
                         },
@@ -121,7 +132,7 @@ class JavaFileCompiler {
             try {
                 WatchKey watchKey = watchService.take();
                 watchKey.pollEvents().forEach(watchEvent -> {
-                    Path path = (Path) watchEvent.context();
+                    Path path = ((Path) watchKey.watchable()).resolve((Path) watchEvent.context());
                     if (path.toFile().isFile()) {
                         WatchEvent.Kind kind = watchEvent.kind();
                         if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
@@ -129,9 +140,23 @@ class JavaFileCompiler {
                         } else {
                             compiledClasses.put(path.toString(), compile(path));
                         }
+                    } else {
+                        try {
+                            path.register(
+                                watchService,
+                                new WatchEvent.Kind[] {
+                                        StandardWatchEventKinds.ENTRY_CREATE,
+                                        StandardWatchEventKinds.ENTRY_MODIFY,
+                                        StandardWatchEventKinds.ENTRY_DELETE
+                                },
+                                SensitivityWatchEventModifier.HIGH
+                            );
+                        } catch (IOException e) {
+                            this.errorLogger.catching(e);
+                        }
                     }
                 });
-                //watchKey.reset();
+                watchKey.reset();
             } catch (Exception e) {
                 this.errorLogger.catching(e);
             }

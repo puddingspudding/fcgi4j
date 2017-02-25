@@ -16,17 +16,21 @@
 package io.github.puddingspudding.nginj;
 
 import io.github.puddingspudding.fcgi.*;
+import io.github.puddingspudding.nginj.http.*;
 import org.apache.logging.log4j.Logger;
 
 import java.io.ByteArrayOutputStream;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 /**
  * Created by pudding on 18.02.17.
@@ -139,18 +143,45 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
 
             Class cl = this.classMap.get(fileName);
 
-            HttpResponse response = new HttpResponse();
-            response.setStatus(200);
-            response.setHeader(httpHeaders);
-            response.setBody(ByteBuffer.wrap("Hello World".getBytes()));
+            Predicate<Method> methodPredicate = method -> false;
+            String requestMethod = cgiHeaders.get("REQUEST_METHOD");
+            if ("POST".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(POST.class);
+            } else if ("GET".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(GET.class);
+            } else if ("PUT".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(PUT.class);
+            } else if ("DELETE".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(DELETE.class);
+            } else if ("HEAD".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(HEAD.class);
+            } else if ("OPTIONS".equalsIgnoreCase(requestMethod)) {
+                methodPredicate = method -> method.isAnnotationPresent(OPTIONS.class);
+            }
+
+            Method method = Arrays.stream(cl.getDeclaredMethods())
+                .filter(methodPredicate)
+                .findFirst()
+                .orElseThrow(RuntimeException::new);
+
+            Response response = (Response) method.invoke(null, request);
 
             this.writeToSocket(response, socketChannel);
         } catch (Exception e) {
+            Response errResponse = new HttpResponse();
+            errResponse.setStatus(500);
+            errResponse.setHeader(new HashMap<>());
+            errResponse.setBody(ByteBuffer.allocate(0));
+            try {
+                this.writeToSocket(errResponse, socketChannel);
+            } catch (Exception e1) {
+                this.errorLogger.catching(e);
+            }
             this.errorLogger.catching(e);
         }
     }
 
-    private void writeToSocket(HttpResponse response, SocketChannel socketChannel) throws Exception {
+    private void writeToSocket(Response response, SocketChannel socketChannel) throws Exception {
         response.getHeader().put("Status", String.valueOf(response.getStatus()));
 
         StringBuilder stringBuilder = response.getHeader().entrySet().stream().collect(

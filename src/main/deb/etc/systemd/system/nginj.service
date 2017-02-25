@@ -1,0 +1,5 @@
+[Unit]
+Description="desc"
+[Service]
+ExecStart=/usr/bin/java -jar /usr/lib/nginj/nginj.jar -Xmx8G -Xms8G -server -Djava.awt.headless=true
+Type=simple

@@ -1,0 +1,8 @@
+Package: nginj
+Section: java
+Priority: optional
+Maintainer: Philip Strecker
+Version: 0.1.0
+Architecture: all
+Description: Desc
+Depends: openjdk-8-jdk

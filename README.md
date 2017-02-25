@@ -1,10 +1,19 @@
-# nginx + Java = nginj
+# Nginx + Java = Nginj
 
 FastCGI implemention in Java with at runtime .java file compilation.
+
+## What, Why and How?
+Nginx is one the most used web servers and as a Java developer you are not able to use it. If you want to provide a web service in Java you have to use 3rd party libraries like Jetty, Tomcat, Vert.x or Akka. This project's goal is to use Nginx and Java as easy as Nginx and PHP (PHP-FPM).
+Nginj uses FastCGI to communicate with nginx on the same or dedicated server. Nginj compiles Java file on first sight and on any file changes in the configured root directory.
 
 
 ## Dependencies
 - openjdk-8-jdk
+
+## Install
+```
+sudo dpkg -i nginj.deb
+```
 
 ## Configuration
 ### NGINX
