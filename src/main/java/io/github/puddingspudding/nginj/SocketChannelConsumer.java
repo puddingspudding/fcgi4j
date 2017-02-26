@@ -126,7 +126,7 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
                 .setHeader(httpHeaders)
                 .setBody(ByteBuffer.wrap(data.toByteArray()));
 
-            String fileName = this.rootDir + cgiHeaders.get("SCRIPT_NAME");
+            String fileName = (this.rootDir + cgiHeaders.get("SCRIPT_NAME")).toLowerCase();
 
             Path file = Paths.get(fileName);
 

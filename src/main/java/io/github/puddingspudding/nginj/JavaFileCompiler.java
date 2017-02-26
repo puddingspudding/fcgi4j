@@ -134,11 +134,12 @@ class JavaFileCompiler {
                 watchKey.pollEvents().forEach(watchEvent -> {
                     Path path = ((Path) watchKey.watchable()).resolve((Path) watchEvent.context());
                     if (path.toFile().isFile()) {
+                        String filePath = path.toString().toLowerCase();
                         WatchEvent.Kind kind = watchEvent.kind();
                         if (kind == StandardWatchEventKinds.ENTRY_DELETE) {
-                            compiledClasses.remove(path.toString());
+                            compiledClasses.remove(filePath);
                         } else {
-                            compiledClasses.put(path.toString(), compile(path));
+                            compiledClasses.put(filePath, compile(path));
                         }
                     } else {
                         try {

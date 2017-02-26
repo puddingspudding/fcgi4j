@@ -54,6 +54,31 @@ port=9000
 threads=10
 ```
 
+## Example
+```java
+// /var/www/Example.java => http://localhost/exmpale.java
+import io.github.puddingspudding.nginj.HttpResponse;
+import io.github.puddingspudding.nginj.Request;
+import io.github.puddingspudding.nginj.Response;
+import io.github.puddingspudding.nginj.http.GET;
+
+import java.nio.ByteBuffer;
+import java.util.HashMap;
+
+public class Example {
+
+    @GET
+    public static Response get(final Request req) {
+        Response res = new HttpResponse();
+        res.setBody(ByteBuffer.wrap("GET Hello World".getBytes()));
+        res.setHeader(new HashMap<>());
+        res.setStatus(200);
+        return res;
+    }
+
+}
+```
+
 ## Build .deb
 ```
 mvn clean package \
