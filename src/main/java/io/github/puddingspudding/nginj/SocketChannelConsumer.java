@@ -43,10 +43,6 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
 
     private final Path rootDir;
 
-    private final ByteBuffer inputByteBuffer = ByteBuffer.allocate(1024 * 8);
-
-    private final ByteBuffer outputByteBuffer = ByteBuffer.allocate(1024 * 8);
-
     private final Logger errorLogger;
 
     private final Logger traceLogger;
@@ -79,11 +75,9 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
             Map<String, String> cgiHeaders = new HashMap<>();
             ByteArrayOutputStream data = new ByteArrayOutputStream();
 
-            inputByteBuffer.clear();
-            socketChannel.read(inputByteBuffer);
-            inputByteBuffer.flip();
+            final ByteBuffer inputByteBuffer = ByteBuffer.allocate(1024 * 8);
             while (true) {
-
+                readSocket(socketChannel, inputByteBuffer);
 
                 Header header = FCGI.readHeader(i -> inputByteBuffer).get();
                 byte type = header.getType();
@@ -97,6 +91,7 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
                     }
                     int start = inputByteBuffer.position();
                     do {
+                        readSocket(socketChannel, inputByteBuffer);
                         NameValuePair nameValuePair = FCGI.readNameValuePair(i -> inputByteBuffer).get();
                         if (nameValuePair.getName().startsWith("HTTP_")) {
                             httpHeaders.put(nameValuePair.getName().replace("HTTP_", ""), nameValuePair.getValue());
@@ -109,13 +104,13 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
                         break;
                     }
                     while (inputByteBuffer.remaining() < header.getContentLength()) {
-                        inputByteBuffer.compact();
-                        socketChannel.read(inputByteBuffer);
-                        inputByteBuffer.flip();
+                        readSocket(socketChannel, inputByteBuffer);
                     }
                     byte[] tmp = new byte[header.getContentLength()];
                     inputByteBuffer.get(tmp);
                     data.write(tmp);
+                } else if (type == FCGI.DATA) {
+                    break;
                 }
                 if (header.getPaddingLength() > 0) {
                     inputByteBuffer.get(new byte[header.getPaddingLength()]);
@@ -181,7 +176,18 @@ class SocketChannelConsumer implements Consumer<SocketChannel> {
         }
     }
 
+    private void readSocket(SocketChannel socketChannel, ByteBuffer inputByteBuffer) throws IOException {
+        // record + padding
+        if (inputByteBuffer.remaining() < 8) {
+            inputByteBuffer.compact();
+            socketChannel.read(inputByteBuffer);
+            inputByteBuffer.flip();
+        }
+    }
+
     private void writeToSocket(Response response, SocketChannel socketChannel) throws Exception {
+        final ByteBuffer outputByteBuffer = ByteBuffer.allocate(1024 * 8);
+
         response.getHeader().put("Status", String.valueOf(response.getStatus()));
 
         StringBuilder stringBuilder = response.getHeader().entrySet().stream().collect(
