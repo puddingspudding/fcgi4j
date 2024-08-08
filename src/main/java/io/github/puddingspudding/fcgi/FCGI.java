@@ -101,7 +101,7 @@ public class FCGI {
 
             if (nameLength >> 7 == 1) {
                 byteBuffer = supplier.apply(3);
-                nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get() << 16) + (byteBuffer.get() << 8) + byteBuffer.get();
+                nameLength = ((nameLength & 0x7f) << 24) + (byteBuffer.get(0) << 16) + (byteBuffer.get(1) << 8) + byteBuffer.get(2);
             }
 
 
